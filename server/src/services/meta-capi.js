@@ -181,33 +181,37 @@ class MetaCAPIService {
 
   // ====================================
   // Pipeline stage event handlers
+  // Only 2 events fire to Meta:
+  //   Lead     -> when SDR confirms qualification (stage: "show" / Lead Qualificado)
+  //   Purchase -> when deal is closed with confirmed value (stage: "won")
+  // This keeps the signal clean for Meta's algorithm.
   // ====================================
 
-  async onNewLead(lead) {
+  /**
+   * Lead event — fired ONLY when SDR confirms the contact is qualified.
+   * NOT on first message. This ensures the algorithm learns from real prospects.
+   */
+  async onQualifiedLead(lead) {
     return this.sendEvent('Lead', lead, {
-      content_name: `${lead.segment || 'Unknown'} - ${lead.state || 'Unknown'}`,
+      content_name: `Qualified - ${lead.segment || 'Unknown'} - ${lead.state || 'Unknown'}`,
       lead_event_source: lead.source || 'whatsapp',
-    });
-  }
-
-  async onScheduled(lead) {
-    return this.sendEvent('Schedule', lead, {
-      content_name: `Appointment - ${lead.segment || 'Unknown'}`,
-    });
-  }
-
-  async onShow(lead) {
-    return this.sendEvent('QualifiedLead', lead, {
-      content_name: `Qualified - ${lead.segment || 'Unknown'}`,
       interest_level: lead.interest_level,
       disc_profile: lead.disc_profile,
     });
   }
 
-  async onWon(lead, dealValue) {
+  /**
+   * Purchase event — fired ONLY when sale is confirmed (payment approved / contract signed).
+   * MUST include monetary value so Meta can optimize for value, not just volume.
+   */
+  async onPurchase(lead, dealValue) {
+    if (!dealValue || dealValue <= 0) {
+      console.warn(`[Meta CAPI] Purchase event for lead ${lead.id} skipped: no deal value provided. Add the value before moving to Won.`);
+      return null;
+    }
     return this.sendEvent('Purchase', lead, {
       currency: 'USD',
-      value: dealValue || 0,
+      value: parseFloat(dealValue),
       content_name: `Deal Won - ${lead.segment || 'Unknown'}`,
     });
   }
@@ -222,10 +226,8 @@ class MetaCAPIService {
     if (!stage || !stage.meta_event) return null;
 
     switch (stage.meta_event) {
-      case 'Lead': return this.onNewLead(lead);
-      case 'Schedule': return this.onScheduled(lead);
-      case 'QualifiedLead': return this.onShow(lead);
-      case 'Purchase': return this.onWon(lead, lead.estimated_revenue);
+      case 'Lead': return this.onQualifiedLead(lead);
+      case 'Purchase': return this.onPurchase(lead, lead.estimated_revenue);
       default: return null;
     }
   }

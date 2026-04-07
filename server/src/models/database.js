@@ -149,11 +149,11 @@ function initSchema() {
       'INSERT INTO pipeline_stages (id, name, position, color, meta_event) VALUES (?, ?, ?, ?, ?)'
     );
     const stages = [
-      ['new_lead', 'Lead Novo', 1, '#3B82F6', 'Lead'],
+      ['new_lead', 'Lead Novo', 1, '#3B82F6', null],
       ['contacting', 'Em Contato', 2, '#8B5CF6', null],
       ['talked', 'Conversou', 3, '#F59E0B', null],
-      ['scheduled', 'Agendado', 4, '#10B981', 'Schedule'],
-      ['show', 'Show', 5, '#06B6D4', 'QualifiedLead'],
+      ['scheduled', 'Agendado', 4, '#10B981', null],
+      ['show', 'Lead Qualificado', 5, '#06B6D4', 'Lead'],
       ['proposal', 'Proposta', 6, '#EC4899', null],
       ['won', 'Fechado (Won)', 7, '#22C55E', 'Purchase'],
       ['lost', 'Perdido (Lost)', 8, '#EF4444', null],
